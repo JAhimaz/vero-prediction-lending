@@ -1,0 +1,1399 @@
+{
+    "address": "3KX1asvGaP1h2UHaxbHoT4WA5Gf6Ex524zYwgwB2Cn3V",
+    "metadata": {
+        "name": "vero",
+        "version": "0.1.0",
+        "spec": "0.1.0",
+        "description": "Prediction market lending protocol on Solana"
+    },
+    "instructions": [
+        {
+            "name": "borrow",
+            "docs": [
+                "Deposit prediction market tokens as collateral and borrow USDC."
+            ],
+            "discriminator": [
+                228,
+                253,
+                131,
+                202,
+                207,
+                116,
+                89,
+                18
+            ],
+            "accounts": [
+                {
+                    "name": "borrower",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool.usdc_mint",
+                                "account": "LendingPool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_mint"
+                },
+                {
+                    "name": "oracle",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    111,
+                                    114,
+                                    97,
+                                    99,
+                                    108,
+                                    101
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "collateral_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "borrow_position",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    98,
+                                    111,
+                                    114,
+                                    114,
+                                    111,
+                                    119
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrower"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "collateral_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    99,
+                                    111,
+                                    108,
+                                    108,
+                                    97,
+                                    116,
+                                    101,
+                                    114,
+                                    97,
+                                    108,
+                                    95,
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrow_position"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "borrower_collateral",
+                    "writable": true
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "borrower_usdc",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "collateral_amount",
+                    "type": "u64"
+                },
+                {
+                    "name": "borrow_amount",
+                    "type": "u64"
+                },
+                {
+                    "name": "resolution_ts",
+                    "type": "i64"
+                }
+            ]
+        },
+        {
+            "name": "deposit",
+            "docs": [
+                "Deposit USDC into the lending pool as a lender."
+            ],
+            "discriminator": [
+                242,
+                35,
+                198,
+                137,
+                82,
+                225,
+                242,
+                182
+            ],
+            "accounts": [
+                {
+                    "name": "lender",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool.usdc_mint",
+                                "account": "LendingPool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "lender_position",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    108,
+                                    101,
+                                    110,
+                                    100,
+                                    101,
+                                    114
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lender"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "lender_usdc",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "initialize_oracle",
+            "docs": [
+                "Initialize a probability oracle for a prediction market token."
+            ],
+            "discriminator": [
+                144,
+                223,
+                131,
+                120,
+                196,
+                253,
+                181,
+                99
+            ],
+            "accounts": [
+                {
+                    "name": "authority",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "market_mint"
+                },
+                {
+                    "name": "oracle",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    111,
+                                    114,
+                                    97,
+                                    99,
+                                    108,
+                                    101
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "market_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "initial_probability_bps",
+                    "type": "u16"
+                },
+                {
+                    "name": "resolution_ts",
+                    "type": "i64"
+                }
+            ]
+        },
+        {
+            "name": "initialize_pool",
+            "docs": [
+                "Initialize a new lending pool for USDC deposits."
+            ],
+            "discriminator": [
+                95,
+                180,
+                10,
+                172,
+                84,
+                174,
+                232,
+                40
+            ],
+            "accounts": [
+                {
+                    "name": "authority",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "usdc_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "interest_rate_bps",
+                    "type": "u16"
+                },
+                {
+                    "name": "liquidation_bonus_bps",
+                    "type": "u16"
+                },
+                {
+                    "name": "max_ltv_bps",
+                    "type": "u16"
+                },
+                {
+                    "name": "liquidation_threshold_bps",
+                    "type": "u16"
+                }
+            ]
+        },
+        {
+            "name": "liquidate",
+            "docs": [
+                "Liquidate an undercollateralized borrow position."
+            ],
+            "discriminator": [
+                223,
+                179,
+                226,
+                125,
+                48,
+                46,
+                39,
+                74
+            ],
+            "accounts": [
+                {
+                    "name": "liquidator",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "borrower",
+                    "docs": [
+                        "The original borrower (not signing — anyone can liquidate)"
+                    ]
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool.usdc_mint",
+                                "account": "LendingPool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_mint"
+                },
+                {
+                    "name": "oracle",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    111,
+                                    114,
+                                    97,
+                                    99,
+                                    108,
+                                    101
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "collateral_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "borrow_position",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    98,
+                                    111,
+                                    114,
+                                    114,
+                                    111,
+                                    119
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrower"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "collateral_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    99,
+                                    111,
+                                    108,
+                                    108,
+                                    97,
+                                    116,
+                                    101,
+                                    114,
+                                    97,
+                                    108,
+                                    95,
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrow_position"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "liquidator_usdc",
+                    "writable": true
+                },
+                {
+                    "name": "liquidator_collateral",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "repay",
+            "docs": [
+                "Repay borrowed USDC and reclaim collateral."
+            ],
+            "discriminator": [
+                234,
+                103,
+                67,
+                82,
+                208,
+                234,
+                219,
+                166
+            ],
+            "accounts": [
+                {
+                    "name": "borrower",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool.usdc_mint",
+                                "account": "LendingPool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_mint"
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "borrow_position",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    98,
+                                    111,
+                                    114,
+                                    114,
+                                    111,
+                                    119
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrower"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "collateral_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "collateral_vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    99,
+                                    111,
+                                    108,
+                                    108,
+                                    97,
+                                    116,
+                                    101,
+                                    114,
+                                    97,
+                                    108,
+                                    95,
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "borrow_position"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "borrower_collateral",
+                    "writable": true
+                },
+                {
+                    "name": "borrower_usdc",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "resolve_oracle",
+            "docs": [
+                "Resolve a prediction market oracle."
+            ],
+            "discriminator": [
+                88,
+                89,
+                32,
+                52,
+                205,
+                171,
+                184,
+                249
+            ],
+            "accounts": [
+                {
+                    "name": "authority",
+                    "signer": true
+                },
+                {
+                    "name": "oracle",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    111,
+                                    114,
+                                    97,
+                                    99,
+                                    108,
+                                    101
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "oracle.market_mint",
+                                "account": "ProbabilityOracle"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "args": [
+                {
+                    "name": "outcome",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "update_oracle",
+            "docs": [
+                "Update the probability reading on an oracle."
+            ],
+            "discriminator": [
+                112,
+                41,
+                209,
+                18,
+                248,
+                226,
+                252,
+                188
+            ],
+            "accounts": [
+                {
+                    "name": "authority",
+                    "signer": true
+                },
+                {
+                    "name": "oracle",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    111,
+                                    114,
+                                    97,
+                                    99,
+                                    108,
+                                    101
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "oracle.market_mint",
+                                "account": "ProbabilityOracle"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "args": [
+                {
+                    "name": "probability_bps",
+                    "type": "u16"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "docs": [
+                "Withdraw USDC from the lending pool."
+            ],
+            "discriminator": [
+                183,
+                18,
+                70,
+                156,
+                148,
+                109,
+                161,
+                34
+            ],
+            "accounts": [
+                {
+                    "name": "lender",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "pool",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    111,
+                                    111,
+                                    108
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool.usdc_mint",
+                                "account": "LendingPool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "lender_position",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    108,
+                                    101,
+                                    110,
+                                    100,
+                                    101,
+                                    114
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lender"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "usdc_mint"
+                },
+                {
+                    "name": "lender_usdc",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    118,
+                                    97,
+                                    117,
+                                    108,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "token_program"
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                }
+            ]
+        }
+    ],
+    "accounts": [
+        {
+            "name": "BorrowPosition",
+            "discriminator": [
+                243,
+                140,
+                20,
+                139,
+                32,
+                243,
+                114,
+                55
+            ]
+        },
+        {
+            "name": "LenderPosition",
+            "discriminator": [
+                165,
+                98,
+                244,
+                204,
+                209,
+                158,
+                88,
+                19
+            ]
+        },
+        {
+            "name": "LendingPool",
+            "discriminator": [
+                208,
+                40,
+                242,
+                82,
+                186,
+                18,
+                75,
+                36
+            ]
+        },
+        {
+            "name": "ProbabilityOracle",
+            "discriminator": [
+                161,
+                156,
+                3,
+                61,
+                112,
+                213,
+                65,
+                106
+            ]
+        }
+    ],
+    "errors": [
+        {
+            "code": 6000,
+            "name": "ExceedsMaxLtv",
+            "msg": "Borrow amount exceeds maximum LTV for this collateral"
+        },
+        {
+            "code": 6001,
+            "name": "NotLiquidatable",
+            "msg": "Position is not eligible for liquidation"
+        },
+        {
+            "code": 6002,
+            "name": "RepayExceedsDebt",
+            "msg": "Repay amount exceeds outstanding debt"
+        },
+        {
+            "code": 6003,
+            "name": "InsufficientPoolLiquidity",
+            "msg": "Insufficient liquidity in the lending pool"
+        },
+        {
+            "code": 6004,
+            "name": "InvalidProbability",
+            "msg": "Invalid oracle probability value"
+        },
+        {
+            "code": 6005,
+            "name": "MarketResolved",
+            "msg": "Market has already resolved"
+        },
+        {
+            "code": 6006,
+            "name": "ZeroCollateral",
+            "msg": "Collateral amount must be greater than zero"
+        },
+        {
+            "code": 6007,
+            "name": "ZeroBorrow",
+            "msg": "Borrow amount must be greater than zero"
+        },
+        {
+            "code": 6008,
+            "name": "InsufficientBalance",
+            "msg": "Withdraw amount exceeds available balance"
+        },
+        {
+            "code": 6009,
+            "name": "MathOverflow",
+            "msg": "Math overflow"
+        }
+    ],
+    "types": [
+        {
+            "name": "BorrowPosition",
+            "docs": [
+                "A borrower's collateralized debt position."
+            ],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "owner",
+                        "docs": [
+                            "The borrower's wallet"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pool",
+                        "docs": [
+                            "The lending pool this position borrows from"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "collateral_mint",
+                        "docs": [
+                            "Mint of the prediction market token used as collateral"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "collateral_amount",
+                        "docs": [
+                            "Amount of prediction tokens deposited as collateral"
+                        ],
+                        "type": "u64"
+                    },
+                    {
+                        "name": "borrowed_amount",
+                        "docs": [
+                            "Amount of USDC borrowed"
+                        ],
+                        "type": "u64"
+                    },
+                    {
+                        "name": "entry_probability_bps",
+                        "docs": [
+                            "Market probability at time of borrow (basis points, e.g., 7500 = 75%)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "opened_at",
+                        "docs": [
+                            "Timestamp the position was opened"
+                        ],
+                        "type": "i64"
+                    },
+                    {
+                        "name": "resolution_ts",
+                        "docs": [
+                            "Timestamp of the market resolution (0 if unknown)"
+                        ],
+                        "type": "i64"
+                    },
+                    {
+                        "name": "bump",
+                        "docs": [
+                            "Bump seed"
+                        ],
+                        "type": "u8"
+                    },
+                    {
+                        "name": "collateral_vault_bump",
+                        "docs": [
+                            "Bump seed for collateral vault PDA"
+                        ],
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "LenderPosition",
+            "docs": [
+                "A lender's deposit position in the pool."
+            ],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "owner",
+                        "docs": [
+                            "The lender's wallet"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pool",
+                        "docs": [
+                            "The lending pool this position belongs to"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "deposited_amount",
+                        "docs": [
+                            "Amount of USDC deposited"
+                        ],
+                        "type": "u64"
+                    },
+                    {
+                        "name": "last_update_ts",
+                        "docs": [
+                            "Timestamp of last deposit/withdrawal"
+                        ],
+                        "type": "i64"
+                    },
+                    {
+                        "name": "bump",
+                        "docs": [
+                            "Bump seed"
+                        ],
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "LendingPool",
+            "docs": [
+                "Global lending pool that holds USDC deposits from lenders."
+            ],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "authority",
+                        "docs": [
+                            "Authority (admin) that can update pool parameters"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "usdc_mint",
+                        "docs": [
+                            "USDC mint address"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "vault",
+                        "docs": [
+                            "Pool's USDC token account (vault)"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "total_deposits",
+                        "docs": [
+                            "Total USDC deposited by lenders"
+                        ],
+                        "type": "u64"
+                    },
+                    {
+                        "name": "total_borrowed",
+                        "docs": [
+                            "Total USDC currently borrowed"
+                        ],
+                        "type": "u64"
+                    },
+                    {
+                        "name": "interest_rate_bps",
+                        "docs": [
+                            "Annual interest rate in basis points (e.g., 500 = 5%)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "liquidation_bonus_bps",
+                        "docs": [
+                            "Liquidation bonus in basis points (e.g., 500 = 5% discount for liquidators)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "max_ltv_bps",
+                        "docs": [
+                            "Maximum LTV ratio in basis points (e.g., 5000 = 50%)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "liquidation_threshold_bps",
+                        "docs": [
+                            "Liquidation threshold in basis points (e.g., 6500 = 65%)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "bump",
+                        "docs": [
+                            "Bump seed for PDA"
+                        ],
+                        "type": "u8"
+                    },
+                    {
+                        "name": "vault_bump",
+                        "docs": [
+                            "Bump seed for vault PDA"
+                        ],
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "ProbabilityOracle",
+            "docs": [
+                "Oracle account storing current probability for a prediction market token.",
+                "In production this would read from DFlow/Pyth; for now it's admin-updatable."
+            ],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "market_mint",
+                        "docs": [
+                            "The prediction market token mint this oracle prices"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "probability_bps",
+                        "docs": [
+                            "Current probability in basis points (0-10000)"
+                        ],
+                        "type": "u16"
+                    },
+                    {
+                        "name": "resolved",
+                        "docs": [
+                            "Whether the market has resolved"
+                        ],
+                        "type": "bool"
+                    },
+                    {
+                        "name": "outcome",
+                        "docs": [
+                            "If resolved, whether the outcome was YES (true) or NO (false)"
+                        ],
+                        "type": "bool"
+                    },
+                    {
+                        "name": "authority",
+                        "docs": [
+                            "Authority allowed to update this oracle"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "last_update_ts",
+                        "docs": [
+                            "Last update timestamp"
+                        ],
+                        "type": "i64"
+                    },
+                    {
+                        "name": "bump",
+                        "docs": [
+                            "Bump seed"
+                        ],
+                        "type": "u8"
+                    }
+                ]
+            }
+        }
+    ]
+}
