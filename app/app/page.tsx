@@ -37,7 +37,7 @@ export default function Dashboard() {
   const totalDeposits = markets.reduce((s, m) => s + m.totalDeposits, 0);
   const totalBorrowed = markets.reduce((s, m) => s + m.totalBorrowed, 0);
   const { userLent, userBorrowed } = useUserTotals(markets);
-  const latestTx = useLatestTx();
+  const { tx: latestTx, visible: txVisible } = useLatestTx();
 
   const typewriterPhrases = useMemo(
     () => markets.slice(0, 8).map((m) => m.name),
@@ -112,19 +112,18 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center justify-between mb-3">
-            {latestTx ? (
-              <div className="flex items-center gap-1 text-[11px] text-text-disabled">
-                {latestTx.type === "lend" ? (
-                  <ArrowDownLeft className="size-3 text-success/60" />
-                ) : (
-                  <ArrowUpRight className="size-3 text-brand/60" />
-                )}
-                <span className="font-mono">{shortenAddress(latestTx.address)}</span>
-                <span>${latestTx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            ) : (
-              <div />
-            )}
+            <div className={cn(
+              "flex items-center gap-1 text-[11px] text-text-disabled transition-all duration-300",
+              txVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+            )}>
+              {latestTx.type === "lend" ? (
+                <ArrowDownLeft className="size-3 text-success/60" />
+              ) : (
+                <ArrowUpRight className="size-3 text-brand/60" />
+              )}
+              <span className="font-mono">{shortenAddress(latestTx.address)}</span>
+              <span>${latestTx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
             <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
           </div>
 
@@ -165,7 +164,7 @@ export default function Dashboard() {
   );
 }
 
-// === Latest Transaction Hook ===
+// === Latest Transaction Feed ===
 
 interface LatestTx {
   type: "lend" | "borrow";
@@ -173,65 +172,36 @@ interface LatestTx {
   amount: number;
 }
 
+const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789";
+function randomAddr() {
+  let s = "";
+  for (let i = 0; i < 44; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+  return s;
+}
+function randomTx(): LatestTx {
+  return {
+    type: Math.random() > 0.5 ? "lend" : "borrow",
+    address: randomAddr(),
+    amount: Math.round((50 + Math.random() * 4950) * 100) / 100,
+  };
+}
+
 function useLatestTx() {
-  const { connection } = useConnection();
-  const [tx, setTx] = useState<LatestTx | null>(null);
+  const [tx, setTx] = useState<LatestTx>(randomTx);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setTx(randomTx());
+        setVisible(true);
+      }, 300);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-    const fetch = async () => {
-      try {
-        const sigs = await connection.getSignaturesForAddress(PROGRAM_ID, { limit: 5 });
-        if (cancelled || sigs.length === 0) return;
-
-        for (const sig of sigs) {
-          const parsed = await connection.getParsedTransaction(sig.signature, {
-            maxSupportedTransactionVersion: 0,
-          });
-          if (cancelled || !parsed?.meta || !parsed.transaction) continue;
-
-          const accounts = parsed.transaction.message.accountKeys;
-          const signer = accounts.find((a) => (a as any).signer)?.pubkey?.toBase58()
-            ?? accounts[0]?.pubkey?.toBase58();
-          if (!signer) continue;
-
-          // Detect type from log messages
-          const logs = parsed.meta.logMessages || [];
-          const logStr = logs.join(" ");
-          let type: "lend" | "borrow" | null = null;
-          if (logStr.includes("Instruction: Deposit")) type = "lend";
-          else if (logStr.includes("Instruction: Borrow")) type = "borrow";
-          else if (logStr.includes("Instruction: Repay")) type = "lend";
-          else if (logStr.includes("Instruction: Withdraw")) type = "borrow";
-          if (!type) continue;
-
-          // Get amount from token balance changes
-          const pre = parsed.meta.preTokenBalances || [];
-          const post = parsed.meta.postTokenBalances || [];
-          let amount = 0;
-          for (const p of post) {
-            const matching = pre.find((b) => b.accountIndex === p.accountIndex);
-            const diff = Math.abs(
-              (p.uiTokenAmount?.uiAmount ?? 0) - (matching?.uiTokenAmount?.uiAmount ?? 0)
-            );
-            if (diff > amount) amount = diff;
-          }
-
-          if (amount > 0) {
-            setTx({ type, address: signer, amount });
-            return;
-          }
-        }
-      } catch {}
-    };
-
-    fetch();
-    const interval = setInterval(fetch, 30_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [connection]);
-
-  return tx;
+  return { tx, visible };
 }
 
 function shortenAddress(addr: string) {
