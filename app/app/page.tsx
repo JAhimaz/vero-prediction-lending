@@ -21,19 +21,22 @@ export default function Dashboard() {
   const [activeMarket, setActiveMarket] = useState<Market | null>(null);
   const [modalMode, setModalMode] = useState<"lend" | "borrow" | null>(null);
   const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    const list = q ? markets.filter((m) => m.name.toLowerCase().includes(q)) : markets;
-    return [...list].sort((a, b) => {
-      if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
-      return b.availableLiquidity - a.availableLiquidity;
-    });
-  }, [markets, search]);
+  const [showHeldOnly, setShowHeldOnly] = useState(false);
 
   const totalDeposits = markets.reduce((s, m) => s + m.totalDeposits, 0);
   const totalBorrowed = markets.reduce((s, m) => s + m.totalBorrowed, 0);
   const { userLent, userBorrowed } = useUserTotals(markets);
+  const userHoldings = useUserHoldings(markets);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    let list = q ? markets.filter((m) => m.name.toLowerCase().includes(q)) : markets;
+    if (showHeldOnly) list = list.filter((m) => userHoldings.has(m.poolAddress.toBase58()));
+    return [...list].sort((a, b) => {
+      if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+      return b.availableLiquidity - a.availableLiquidity;
+    });
+  }, [markets, search, showHeldOnly, userHoldings]);
   const { tx: latestTx, visible: txVisible } = useLatestTx();
 
   const typewriterPhrases = useMemo(
@@ -123,7 +126,20 @@ export default function Dashboard() {
                 <span>${latestTx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             ) : <div />}
-            <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowHeldOnly(!showHeldOnly)}
+                className={cn(
+                  "text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors",
+                  showHeldOnly
+                    ? "bg-brand/15 text-brand"
+                    : "text-text-disabled hover:text-text-tertiary"
+                )}
+              >
+                My tokens
+              </button>
+              <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
+            </div>
           </div>
 
           {marketsLoading ? (
@@ -208,6 +224,44 @@ function useLatestTx() {
 
 function shortenAddress(addr: string) {
   return `${addr.slice(0, 4)}...${addr.slice(-3)}`;
+}
+
+// === User Token Holdings Hook ===
+
+function useUserHoldings(markets: Market[]) {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const [holdings, setHoldings] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!publicKey || markets.length === 0) { setHoldings(new Set()); return; }
+
+    const mints = markets.flatMap((m) => [m.yesMint, m.noMint]);
+    const atas = mints.map((mint) => {
+      const [ata] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").toBuffer(), mint.toBuffer()],
+        new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+      );
+      return ata;
+    });
+
+    connection.getMultipleAccountsInfo(atas).then((accounts) => {
+      const held = new Set<string>();
+      for (let i = 0; i < markets.length; i++) {
+        const yesAcc = accounts[i * 2];
+        const noAcc = accounts[i * 2 + 1];
+        if (yesAcc || noAcc) {
+          // Check if balance > 0
+          const hasYes = yesAcc && yesAcc.data.length >= 72 && Buffer.from(yesAcc.data).readBigUInt64LE(64) > BigInt(0);
+          const hasNo = noAcc && noAcc.data.length >= 72 && Buffer.from(noAcc.data).readBigUInt64LE(64) > BigInt(0);
+          if (hasYes || hasNo) held.add(markets[i].poolAddress.toBase58());
+        }
+      }
+      setHoldings(held);
+    }).catch(() => {});
+  }, [publicKey, connection, markets]);
+
+  return holdings;
 }
 
 // === User Totals Hook ===
