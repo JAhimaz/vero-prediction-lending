@@ -116,9 +116,11 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
         token_interface::transfer_checked(cpi_ctx, fee, 6)?;
     }
 
-    // Update pool
+    // Update pool — interest portion goes to lenders as yield
     let pool = &mut ctx.accounts.pool;
     let position = &mut ctx.accounts.borrow_position;
+    let interest_paid = position.accrued_interest;
+    pool.total_deposits = pool.total_deposits.saturating_add(interest_paid);
     pool.total_borrowed = pool.total_borrowed.saturating_sub(position.borrowed_amount);
     pool.total_fees_collected = pool.total_fees_collected.saturating_add(fee);
 

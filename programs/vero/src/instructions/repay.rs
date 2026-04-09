@@ -69,6 +69,9 @@ pub fn handler(ctx: Context<Repay>, amount: u64) -> Result<()> {
     let pool = &mut ctx.accounts.pool;
 
     if is_full_repay {
+        // Interest portion goes to lenders (increases total_deposits, shares stay same → APR)
+        let interest_paid = position.accrued_interest;
+        pool.total_deposits = pool.total_deposits.saturating_add(interest_paid);
         pool.total_borrowed = pool.total_borrowed.saturating_sub(position.borrowed_amount);
         position.borrowed_amount = 0;
         position.accrued_interest = 0;
@@ -76,9 +79,14 @@ pub fn handler(ctx: Context<Repay>, amount: u64) -> Result<()> {
     } else {
         // Pay off accrued interest first, remainder reduces principal
         if amount <= position.accrued_interest {
+            // All goes to interest → lender yield
+            pool.total_deposits = pool.total_deposits.saturating_add(amount);
             position.accrued_interest = position.accrued_interest.saturating_sub(amount);
         } else {
-            let principal_repaid = amount - position.accrued_interest;
+            let interest_paid = position.accrued_interest;
+            let principal_repaid = amount - interest_paid;
+            // Interest portion → lender yield
+            pool.total_deposits = pool.total_deposits.saturating_add(interest_paid);
             position.accrued_interest = 0;
             position.borrowed_amount = position.borrowed_amount.saturating_sub(principal_repaid);
             pool.total_borrowed = pool.total_borrowed.saturating_sub(principal_repaid);

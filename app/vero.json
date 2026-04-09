@@ -1437,9 +1437,9 @@
             "type": "pubkey"
           },
           {
-            "name": "deposited_amount",
+            "name": "shares",
             "docs": [
-              "Amount of USDC deposited"
+              "Pool shares held by this lender"
             ],
             "type": "u64"
           },
@@ -1514,6 +1514,13 @@
             "name": "total_fees_collected",
             "docs": [
               "Total fees collected by the protocol"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_deposit_shares",
+            "docs": [
+              "Total shares outstanding for lender deposits (share-based yield model)"
             ],
             "type": "u64"
           },

@@ -21,6 +21,7 @@ pub fn handler(
     pool.total_deposits = 0;
     pool.total_borrowed = 0;
     pool.total_fees_collected = 0;
+    pool.total_deposit_shares = 0;
     pool.interest_rate_bps = interest_rate_bps;
     pool.liquidation_bonus_bps = liquidation_bonus_bps;
     pool.max_ltv_bps = max_ltv_bps;

@@ -27,6 +27,7 @@ export interface Market {
   resolved: boolean;
   outcome: boolean;
   endDate: string | null;
+  supplyAprPct: number;
 }
 
 export function useMarkets() {
@@ -96,6 +97,14 @@ export function useMarkets() {
             resolved: (oracleData as any).resolved,
             outcome: (oracleData as any).outcome,
             endDate: (cfg.slug ? liveEndDates.current.get(cfg.slug) : null) ?? null,
+            supplyAprPct: (() => {
+              const deposits = (poolData as any).total_deposits.toNumber();
+              const borrowed = (poolData as any).total_borrowed.toNumber();
+              const rateBps = (poolData as any).interest_rate_bps;
+              if (deposits === 0) return 0;
+              const utilization = borrowed / deposits;
+              return (rateBps / 100) * utilization;
+            })(),
           });
         } catch {
           // Skip markets that fail to decode (old format)

@@ -17,6 +17,8 @@ pub struct LendingPool {
     pub total_borrowed: u64,
     /// Total fees collected by the protocol
     pub total_fees_collected: u64,
+    /// Total shares outstanding for lender deposits (share-based yield model)
+    pub total_deposit_shares: u64,
     /// Annual interest rate in basis points (e.g., 500 = 5%)
     pub interest_rate_bps: u16,
     /// Liquidation bonus in basis points (e.g., 500 = 5% discount for liquidators)
@@ -46,6 +48,7 @@ impl LendingPool {
         + 8   // total_deposits
         + 8   // total_borrowed
         + 8   // total_fees_collected
+        + 8   // total_deposit_shares
         + 2   // interest_rate_bps
         + 2   // liquidation_bonus_bps
         + 2   // max_ltv_bps
@@ -68,8 +71,8 @@ pub struct LenderPosition {
     pub owner: Pubkey,
     /// The lending pool this position belongs to
     pub pool: Pubkey,
-    /// Amount of USDC deposited
-    pub deposited_amount: u64,
+    /// Pool shares held by this lender
+    pub shares: u64,
     /// Timestamp of last deposit/withdrawal
     pub last_update_ts: i64,
     /// Bump seed
@@ -80,7 +83,7 @@ impl LenderPosition {
     pub const LEN: usize = 8  // discriminator
         + 32  // owner
         + 32  // pool
-        + 8   // deposited_amount
+        + 8   // shares
         + 8   // last_update_ts
         + 1;  // bump
 }

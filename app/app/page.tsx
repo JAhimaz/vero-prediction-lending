@@ -192,9 +192,14 @@ function MarketCard({ market: m, onLend, onBorrow }: {
       </div>
 
       <div>
-        <div className="flex items-baseline gap-1 mb-3">
-          <span className="text-[14px] font-bold text-text-primary">${m.availableLiquidity.toLocaleString()}</span>
-          <span className="text-[10px] text-text-disabled">available</span>
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="flex items-baseline gap-1">
+            <span className="text-[14px] font-bold text-text-primary">${m.availableLiquidity.toLocaleString()}</span>
+            <span className="text-[10px] text-text-disabled">available</span>
+          </div>
+          {m.supplyAprPct > 0 && (
+            <span className="text-[10px] font-semibold text-success">{m.supplyAprPct.toFixed(2)}% APR</span>
+          )}
         </div>
         <div className="flex gap-1.5">
           <button onClick={onLend} disabled={tr.expired && !tr.inGracePeriod} className="flex-1 h-7 rounded-sm bg-secondary text-[11px] font-semibold text-text-primary flex items-center justify-center gap-1 transition-colors active:bg-surface-muted disabled:opacity-40 disabled:pointer-events-none">
@@ -251,8 +256,8 @@ function PositionCard({ market: m }: { market: Market }) {
     fetchBorrowPosition().then(setBorrowPos);
   }, [connected, fetchLenderPosition, fetchBorrowPosition]);
 
-  const hasLend = lenderPos && lenderPos.depositedAmount.toNumber() > 0;
-  const hasBorrow = borrowPos && borrowPos.borrowedAmount.toNumber() > 0;
+  const hasLend = lenderPos && (lenderPos.shares ?? lenderPos.deposited_amount ?? lenderPos.depositedAmount)?.toNumber() > 0;
+  const hasBorrow = borrowPos && (borrowPos.borrowed_amount ?? borrowPos.borrowedAmount).toNumber() > 0;
 
   if (!hasLend && !hasBorrow) return null;
 
@@ -286,12 +291,12 @@ function PositionCard({ market: m }: { market: Market }) {
         <p className="text-[12px] font-semibold text-text-primary truncate">{m.name}</p>
         {hasLend && (
           <p className="text-[11px] text-text-secondary">
-            Lent {(lenderPos.depositedAmount.toNumber() / 1e6).toLocaleString()} USDC
+            Lent {((lenderPos.shares ?? lenderPos.deposited_amount ?? lenderPos.depositedAmount).toNumber() / 1e6).toLocaleString()} shares
           </p>
         )}
         {hasBorrow && (
           <p className="text-[11px] text-text-secondary">
-            Borrowed ${(borrowPos.borrowedAmount.toNumber() / 1e6).toLocaleString()}
+            Borrowed ${((borrowPos.borrowed_amount ?? borrowPos.borrowedAmount).toNumber() / 1e6).toLocaleString()}
           </p>
         )}
       </div>
@@ -411,11 +416,11 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
           </>
         )}
 
-        {tab === "repay" && position && position.borrowedAmount.toNumber() > 0 && (
+        {tab === "repay" && position && (position.borrowed_amount ?? position.borrowedAmount).toNumber() > 0 && (
           <div className="flex justify-between text-[11px] px-0.5">
             <span className="text-text-disabled">Total debt</span>
             <span className="text-text-secondary font-medium">
-              ${((position.borrowedAmount.toNumber() + position.accruedInterest.toNumber()) / 1e6).toLocaleString()}
+              ${(((position.borrowed_amount ?? position.borrowedAmount).toNumber() + (position.accrued_interest ?? position.accruedInterest).toNumber()) / 1e6).toLocaleString()}
             </span>
           </div>
         )}
@@ -426,8 +431,8 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
           onChange={setAmount}
           onMax={() => {
             if (tab === "deposit") setAmount(usdcBalance.toString());
-            else if (tab === "withdraw" && lenderPos) setAmount((lenderPos.depositedAmount.toNumber() / 1e6).toString());
-            else if (tab === "repay" && position) setAmount(((position.borrowedAmount.toNumber() + position.accruedInterest.toNumber()) / 1e6).toString());
+            else if (tab === "withdraw" && lenderPos) setAmount(((lenderPos.shares ?? lenderPos.deposited_amount ?? lenderPos.depositedAmount).toNumber() / 1e6).toString());
+            else if (tab === "repay" && position) setAmount((((position.borrowed_amount ?? position.borrowedAmount).toNumber() + (position.accrued_interest ?? position.accruedInterest).toNumber()) / 1e6).toString());
           }}
         />
 

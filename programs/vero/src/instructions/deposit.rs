@@ -37,16 +37,28 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         token_interface::transfer_checked(cpi_ctx, fee, 6)?;
     }
 
-    // Update pool state (only net amount counts as deposit)
+    // Calculate shares: if first deposit, 1:1; otherwise proportional
     let pool = &mut ctx.accounts.pool;
+    let new_shares = if pool.total_deposit_shares == 0 || pool.total_deposits == 0 {
+        net_amount
+    } else {
+        (net_amount as u128)
+            .checked_mul(pool.total_deposit_shares as u128)
+            .unwrap()
+            .checked_div(pool.total_deposits as u128)
+            .unwrap() as u64
+    };
+
+    // Update pool state
     pool.total_deposits = pool.total_deposits.checked_add(net_amount).unwrap();
+    pool.total_deposit_shares = pool.total_deposit_shares.checked_add(new_shares).unwrap();
     pool.total_fees_collected = pool.total_fees_collected.checked_add(fee).unwrap();
 
     // Update lender position
     let position = &mut ctx.accounts.lender_position;
     position.owner = ctx.accounts.lender.key();
     position.pool = pool.key();
-    position.deposited_amount = position.deposited_amount.checked_add(net_amount).unwrap();
+    position.shares = position.shares.checked_add(new_shares).unwrap();
     position.last_update_ts = Clock::get()?.unix_timestamp;
     position.bump = ctx.bumps.lender_position;
 
