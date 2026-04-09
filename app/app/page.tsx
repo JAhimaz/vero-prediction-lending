@@ -528,13 +528,27 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
 }) {
   const isOpen = !!market && !!mode;
   const [collateralSide, setCollateralSide] = useState<"yes" | "no">("yes");
-  const activeMint = market ? (collateralSide === "yes" ? market.yesMint : market.noMint) : undefined;
+  const activeMint = useMemo(
+    () => market ? (collateralSide === "yes" ? market.yesMint : market.noMint) : undefined,
+    [market, collateralSide],
+  );
+
+  // Lend-side always uses yesMint (doesn't matter for deposit/withdraw, just need a valid mint)
+  const lendVero = useVero(market?.usdcMint, market?.yesMint);
+  // Borrow-side uses the selected collateral mint
+  const borrowVero = useVero(market?.usdcMint, activeMint);
 
   const {
-    connected, deposit, withdraw, borrow, repay,
-    fetchPool, fetchOracle, fetchBorrowPosition, fetchLenderPosition,
-    usdcBalance, predictionBalance,
-  } = useVero(market?.usdcMint, activeMint);
+    connected, deposit, withdraw,
+    fetchPool, fetchLenderPosition,
+    usdcBalance,
+  } = lendVero;
+
+  const {
+    borrow, repay,
+    fetchOracle, fetchBorrowPosition,
+    predictionBalance,
+  } = borrowVero;
 
   const [tab, setTab] = useState<"deposit" | "withdraw" | "borrow" | "repay">("deposit");
   const [amount, setAmount] = useState("");
@@ -551,20 +565,22 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
     setAmount(""); setCollateralAmount(""); setStatus("");
     setTab(mode === "lend" ? "deposit" : "borrow");
     setCollateralSide("yes");
+  }, [market, mode]);
+
+  useEffect(() => {
+    if (!market) return;
     fetchPool().then(setPool);
-    fetchOracle().then(setOracle);
-    fetchBorrowPosition().then(setPosition);
     fetchLenderPosition().then(setLenderPos);
-  }, [market, mode, fetchPool, fetchOracle, fetchBorrowPosition, fetchLenderPosition]);
+  }, [market, fetchPool, fetchLenderPosition]);
 
   useEffect(() => {
     if (!market) return;
     fetchOracle().then(setOracle);
     fetchBorrowPosition().then(setPosition);
-  }, [collateralSide, fetchOracle, fetchBorrowPosition]);
+  }, [market, collateralSide, fetchOracle, fetchBorrowPosition]);
 
   const probability = oracle ? (oracle.probability_bps ?? oracle.probabilityBps) / 100 : market ? market.probabilityBps / 100 : 0;
-  const maxLtv = pool ? pool.maxLtvBps / 100 : 50;
+  const maxLtv = pool ? (pool.max_ltv_bps ?? pool.maxLtvBps) / 100 : 50;
   const maxBorrow = collateralAmount && probability
     ? (parseFloat(collateralAmount) * (probability / 100) * (maxLtv / 100)).toFixed(2) : "0.00";
 
