@@ -69,8 +69,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {(userLent > 0 || userBorrowed > 0) && (
-          <>
+        <>
             <div className="w-px h-8 bg-text-disabled/40" />
             <div className="flex items-center gap-2">
               <div className="size-6 rounded-md bg-success/10 flex items-center justify-center">
@@ -92,7 +91,6 @@ export default function Dashboard() {
               </div>
             </div>
           </>
-        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-5">
