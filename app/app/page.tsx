@@ -150,8 +150,8 @@ function MarketCard({ market: m, onLend, onBorrow }: {
 
   return (
     <div className={cn(
-      "bg-card rounded-xl border border-border p-4 flex flex-col justify-between aspect-square",
-      tr.expired && !tr.inGracePeriod && "opacity-50",
+      "bg-card rounded-xl border border-border p-4 flex flex-col justify-between aspect-square transition-all duration-200 ease-out hover:scale-[1.03] hover:shadow-[0_8px_24px_rgba(61,40,40,0.08)] hover:z-10",
+      tr.expired && !tr.inGracePeriod && "opacity-50 hover:scale-100 hover:shadow-none",
     )}>
       <div>
         {m.resolved && (
