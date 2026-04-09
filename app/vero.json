@@ -46,6 +46,11 @@
                 "kind": "account",
                 "path": "pool.usdc_mint",
                 "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
+                "account": "LendingPool"
               }
             ]
           }
@@ -251,6 +256,11 @@
                 "kind": "account",
                 "path": "pool.usdc_mint",
                 "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
+                "account": "LendingPool"
               }
             ]
           }
@@ -389,6 +399,11 @@
               {
                 "kind": "account",
                 "path": "pool.usdc_mint",
+                "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
                 "account": "LendingPool"
               }
             ]
@@ -560,6 +575,12 @@
           "name": "usdc_mint"
         },
         {
+          "name": "market_mint",
+          "docs": [
+            "Market identifier mint (YES prediction token) — differentiates pools sharing the same USDC"
+          ]
+        },
+        {
           "name": "treasury"
         },
         {
@@ -579,6 +600,10 @@
               {
                 "kind": "account",
                 "path": "usdc_mint"
+              },
+              {
+                "kind": "account",
+                "path": "market_mint"
               }
             ]
           }
@@ -688,6 +713,11 @@
               {
                 "kind": "account",
                 "path": "pool.usdc_mint",
+                "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
                 "account": "LendingPool"
               }
             ]
@@ -866,6 +896,11 @@
               {
                 "kind": "account",
                 "path": "pool.usdc_mint",
+                "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
                 "account": "LendingPool"
               }
             ]
@@ -1124,6 +1159,11 @@
               {
                 "kind": "account",
                 "path": "pool.usdc_mint",
+                "account": "LendingPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.market_mint",
                 "account": "LendingPool"
               }
             ]
@@ -1479,6 +1519,13 @@
             "name": "usdc_mint",
             "docs": [
               "USDC mint address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "market_mint",
+            "docs": [
+              "Market identifier mint (YES prediction token) — used as PDA seed"
             ],
             "type": "pubkey"
           },

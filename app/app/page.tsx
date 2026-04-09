@@ -281,17 +281,17 @@ function useUserTotals(markets: Market[]) {
     const coder = new BorshCoder(idlJson as Idl);
 
     const lenderKeys = markets.map((m) => {
-      const [pool] = findPoolPda(m.usdcMint);
+      const [pool] = findPoolPda(m.usdcMint, m.yesMint);
       const [pos] = findLenderPositionPda(pool, publicKey);
       return pos;
     });
     const borrowYesKeys = markets.map((m) => {
-      const [pool] = findPoolPda(m.usdcMint);
+      const [pool] = findPoolPda(m.usdcMint, m.yesMint);
       const [pos] = findBorrowPositionPda(pool, publicKey, m.yesMint);
       return pos;
     });
     const borrowNoKeys = markets.map((m) => {
-      const [pool] = findPoolPda(m.usdcMint);
+      const [pool] = findPoolPda(m.usdcMint, m.yesMint);
       const [pos] = findBorrowPositionPda(pool, publicKey, m.noMint);
       return pos;
     });
@@ -453,8 +453,8 @@ function PositionsSidebar({ markets }: { markets: Market[] }) {
 }
 
 function PositionCard({ market: m }: { market: Market }) {
-  const { fetchLenderPosition, fetchBorrowPosition: fetchYesBorrow, connected } = useVero(m.usdcMint, m.yesMint);
-  const { fetchBorrowPosition: fetchNoBorrow } = useVero(m.usdcMint, m.noMint);
+  const { fetchLenderPosition, fetchBorrowPosition: fetchYesBorrow, connected } = useVero(m.usdcMint, m.yesMint, m.yesMint);
+  const { fetchBorrowPosition: fetchNoBorrow } = useVero(m.usdcMint, m.noMint, m.yesMint);
   const [lenderPos, setLenderPos] = useState<any>(null);
   const [borrowPos, setBorrowPos] = useState<any>(null);
 
@@ -533,10 +533,10 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
     [market, collateralSide],
   );
 
-  // Lend-side always uses yesMint (doesn't matter for deposit/withdraw, just need a valid mint)
-  const lendVero = useVero(market?.usdcMint, market?.yesMint);
-  // Borrow-side uses the selected collateral mint
-  const borrowVero = useVero(market?.usdcMint, activeMint);
+  // Lend-side always uses yesMint
+  const lendVero = useVero(market?.usdcMint, market?.yesMint, market?.yesMint);
+  // Borrow-side uses the selected collateral mint, but pool PDA always uses yesMint
+  const borrowVero = useVero(market?.usdcMint, activeMint, market?.yesMint);
 
   const {
     connected, deposit, withdraw,

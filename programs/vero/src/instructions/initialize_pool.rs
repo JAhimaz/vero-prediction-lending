@@ -16,6 +16,7 @@ pub fn handler(
     let pool = &mut ctx.accounts.pool;
     pool.authority = ctx.accounts.authority.key();
     pool.usdc_mint = ctx.accounts.usdc_mint.key();
+    pool.market_mint = ctx.accounts.market_mint.key();
     pool.vault = ctx.accounts.vault.key();
     pool.treasury = ctx.accounts.treasury.key();
     pool.total_deposits = 0;
@@ -41,6 +42,9 @@ pub struct InitializePool<'info> {
 
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
+    /// Market identifier mint (YES prediction token) — differentiates pools sharing the same USDC
+    pub market_mint: InterfaceAccount<'info, Mint>,
+
     /// CHECK: Treasury wallet that receives protocol fees
     pub treasury: UncheckedAccount<'info>,
 
@@ -48,7 +52,7 @@ pub struct InitializePool<'info> {
         init,
         payer = authority,
         space = LendingPool::LEN,
-        seeds = [b"pool", usdc_mint.key().as_ref()],
+        seeds = [b"pool", usdc_mint.key().as_ref(), market_mint.key().as_ref()],
         bump,
     )]
     pub pool: Account<'info, LendingPool>,

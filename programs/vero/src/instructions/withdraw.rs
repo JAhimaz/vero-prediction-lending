@@ -28,9 +28,11 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     // Transfer USDC from vault to lender (PDA signer)
     let usdc_mint_key = pool.usdc_mint;
+    let market_mint_key = pool.market_mint;
     let pool_seeds = &[
         b"pool".as_ref(),
         usdc_mint_key.as_ref(),
+        market_mint_key.as_ref(),
         &[pool.bump],
     ];
     let signer_seeds = &[&pool_seeds[..]];
@@ -67,7 +69,7 @@ pub struct Withdraw<'info> {
 
     #[account(
         mut,
-        seeds = [b"pool", pool.usdc_mint.as_ref()],
+        seeds = [b"pool", pool.usdc_mint.as_ref(), pool.market_mint.as_ref()],
         bump = pool.bump,
     )]
     pub pool: Account<'info, LendingPool>,

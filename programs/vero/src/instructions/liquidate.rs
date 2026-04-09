@@ -69,9 +69,11 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
 
     // Liquidator receives all collateral (at a discount — that's the incentive)
     let usdc_mint_key = pool.usdc_mint;
+    let market_mint_key = pool.market_mint;
     let pool_seeds = &[
         b"pool".as_ref(),
         usdc_mint_key.as_ref(),
+        market_mint_key.as_ref(),
         &[pool.bump],
     ];
     let signer_seeds = &[&pool_seeds[..]];
@@ -143,7 +145,7 @@ pub struct Liquidate<'info> {
 
     #[account(
         mut,
-        seeds = [b"pool", pool.usdc_mint.as_ref()],
+        seeds = [b"pool", pool.usdc_mint.as_ref(), pool.market_mint.as_ref()],
         bump = pool.bump,
     )]
     pub pool: Account<'info, LendingPool>,

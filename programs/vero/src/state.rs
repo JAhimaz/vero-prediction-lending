@@ -7,6 +7,8 @@ pub struct LendingPool {
     pub authority: Pubkey,
     /// USDC mint address
     pub usdc_mint: Pubkey,
+    /// Market identifier mint (YES prediction token) — used as PDA seed
+    pub market_mint: Pubkey,
     /// Pool's USDC token account (vault)
     pub vault: Pubkey,
     /// Protocol treasury wallet that receives fees
@@ -43,6 +45,7 @@ impl LendingPool {
     pub const LEN: usize = 8  // discriminator
         + 32  // authority
         + 32  // usdc_mint
+        + 32  // market_mint
         + 32  // vault
         + 32  // treasury
         + 8   // total_deposits

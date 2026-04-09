@@ -15,8 +15,8 @@ function loadKeypair(filepath: string): Keypair {
   );
 }
 
-function findPoolPda(usdcMint: PublicKey) {
-  return PublicKey.findProgramAddressSync([Buffer.from("pool"), usdcMint.toBuffer()], PROGRAM_ID);
+function findPoolPda(usdcMint: PublicKey, marketMint: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("pool"), usdcMint.toBuffer(), marketMint.toBuffer()], PROGRAM_ID);
 }
 function findVaultPda(pool: PublicKey) {
   return PublicKey.findProgramAddressSync([Buffer.from("vault"), pool.toBuffer()], PROGRAM_ID);
@@ -52,9 +52,6 @@ const METADAO_MARKETS = [
   { name: "MetaDAO: Marketing Budget Allocation", symbol: "USDC", question: "2NkNhM4DxXfFkCMz8VyP7hQwbT3vF2JxqLnZR5pM3Kib", probability: 3200, supply: 209533 },
   { name: "MetaDAO: Smart Contract Audit Fund", symbol: "USDC", question: "Dy7ZDLovtM89cVrB3KPZ4qjN7bC2FxQ3kVfQGz5Rq2HP", probability: 7800, supply: 182411 },
   { name: "MetaDAO: DAO Tooling Grant", symbol: "USDC", question: "5giGwtvdnqAi3XjQRfB5yT6zPVxQ8KfC2N9bJvP7Qm3H", probability: 5400, supply: 173813 },
-  { name: "GZE: Token Utility Expansion", symbol: "GZE", question: "9scwJBqi7ednQZ3fQ5VHkB8NvJMq2LF7yDbR9TxfKYHp", probability: 4600, supply: 64000 },
-  { name: "KOL: Community Treasury Proposal", symbol: "KOL", question: "d6c2VTskJCjR8H7f9Bz3xPqN4vDmQkL2K5rJYp1sEfT", probability: 6100, supply: 68333 },
-  { name: "MetaDAO: Protocol Revenue Sharing", symbol: "USDC", question: "RhUSpWXQ2bLdJk9fPqVcN7DmQr3tB5nGxK2L8hYqE4Fz", probability: 5900, supply: 67984 },
 ];
 
 async function main() {
@@ -79,22 +76,36 @@ async function main() {
   const results: any[] = [];
   const userWallet = process.argv[2] ? new PublicKey(process.argv[2]) : null;
 
+  // Create a single shared USDC mint for all pools
+  console.log("\n--- Creating shared USDC mint ---");
+  const usdcMint = await createMint(connection, admin, admin.publicKey, null, 6);
+  console.log("USDC Mint:", usdcMint.toBase58());
+
+  // Create treasury USDC ATA once (shared across all pools)
+  const treasuryUsdc = await getOrCreateAssociatedTokenAccount(connection, admin, usdcMint, TREASURY);
+  console.log("Treasury USDC ATA:", treasuryUsdc.address.toBase58());
+
+  // Create admin USDC ATA once
+  const adminUsdcAta = await getOrCreateAssociatedTokenAccount(connection, admin, usdcMint, admin.publicKey);
+  // Mint a large USDC supply to admin for seeding all pools
+  await mintTo(connection, admin, usdcMint, adminUsdcAta.address, admin, 100_000_000_000); // 100k USDC
+  console.log("Admin USDC ATA:", adminUsdcAta.address.toBase58(), "(100,000 USDC)");
+
   console.log(`\nInitializing ${METADAO_MARKETS.length} MetaDAO markets on devnet...\n`);
 
   for (let i = 0; i < METADAO_MARKETS.length; i++) {
     const market = METADAO_MARKETS[i];
     console.log(`=== ${i + 1}/${METADAO_MARKETS.length}: ${market.name} ===`);
 
-    // Each market gets its own USDC mint + YES mint + NO mint on devnet
-    const usdcMint = await createMint(connection, admin, admin.publicKey, null, 6);
+    // YES + NO mints per market, shared USDC
     const yesMint = await createMint(connection, admin, admin.publicKey, null, 6);
     const noMint = await createMint(connection, admin, admin.publicKey, null, 6);
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, yesMint);
     const [vault] = findVaultPda(pool);
 
     // Init pool: 0.1% deposit, 0.5% borrow, 5% liquidation
     await program.methods.initializePool(500, 500, 5000, 6500, 10, 50, 500).accounts({
-      authority: admin.publicKey, usdcMint, treasury: TREASURY, pool, vault,
+      authority: admin.publicKey, usdcMint, marketMint: yesMint, treasury: TREASURY, pool, vault,
       tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
@@ -113,17 +124,12 @@ async function main() {
       systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
-    // Treasury ATA
-    const treasuryUsdc = await getOrCreateAssociatedTokenAccount(connection, admin, usdcMint, TREASURY);
-
     // Seed liquidity scaled by real supply
     const seedAmount = Math.max(1000, Math.min(10000, Math.round(market.supply / 100000)));
-    const adminUsdc = await createAccount(connection, admin, usdcMint, admin.publicKey);
-    await mintTo(connection, admin, usdcMint, adminUsdc, admin, seedAmount * 1_000_000);
     const [lenderPos] = findLenderPositionPda(pool, admin.publicKey);
     await program.methods.deposit(new BN(seedAmount * 1_000_000)).accounts({
       lender: admin.publicKey, pool, lenderPosition: lenderPos, usdcMint,
-      lenderUsdc: adminUsdc, vault, treasuryUsdc: treasuryUsdc.address,
+      lenderUsdc: adminUsdcAta.address, vault, treasuryUsdc: treasuryUsdc.address,
       tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
@@ -136,9 +142,10 @@ async function main() {
     console.log(`  ${market.symbol} | Pass ${market.probability / 100}% / Fail ${noProbability / 100}% | $${seedAmount} liquidity`);
 
     // Mint to user wallet if provided
-    if (userWallet) {
+    if (userWallet && i === 0) {
+      // Mint USDC to user wallet once (shared mint)
       const userUsdc = await getOrCreateAssociatedTokenAccount(connection, admin, usdcMint, userWallet);
-      await mintTo(connection, admin, usdcMint, userUsdc.address, admin, 5000_000_000);
+      await mintTo(connection, admin, usdcMint, userUsdc.address, admin, 10000_000_000);
       const userYes = await getOrCreateAssociatedTokenAccount(connection, admin, yesMint, userWallet);
       await mintTo(connection, admin, yesMint, userYes.address, admin, 2000_000_000);
       const userNo = await getOrCreateAssociatedTokenAccount(connection, admin, noMint, userWallet);

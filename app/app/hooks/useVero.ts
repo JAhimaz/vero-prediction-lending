@@ -15,8 +15,11 @@ import idlJson from "../../vero.json";
 export const PROGRAM_ID = new PublicKey(idlJson.address);
 const TREASURY = new PublicKey("7M5GcaAkEbdzCurMBsZZAytvHABCPKW6L4URsfdTSHwT");
 
-export function findPoolPda(usdcMint: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync([Buffer.from("pool"), usdcMint.toBuffer()], PROGRAM_ID);
+export function findPoolPda(usdcMint: PublicKey, marketMint?: PublicKey): [PublicKey, number] {
+  const seeds = marketMint
+    ? [Buffer.from("pool"), usdcMint.toBuffer(), marketMint.toBuffer()]
+    : [Buffer.from("pool"), usdcMint.toBuffer()];
+  return PublicKey.findProgramAddressSync(seeds, PROGRAM_ID);
 }
 export function findVaultPda(pool: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync([Buffer.from("vault"), pool.toBuffer()], PROGRAM_ID);
@@ -53,7 +56,7 @@ async function getOrCreateAta(
  * Hook for interacting with a specific Vero market.
  * Pass usdcMint + predictionMint to target a specific pool/oracle pair.
  */
-export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
+export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey, marketMint?: PublicKey) {
   const { connection } = useConnection();
   const wallet = useWallet();
 
@@ -102,7 +105,7 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const deposit = useCallback(async (amount: number) => {
     if (!program || !wallet.publicKey || !usdcMint) throw new Error("Not ready");
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [vault] = findVaultPda(pool);
     const [lenderPosition] = findLenderPositionPda(pool, wallet.publicKey);
     const { ata, createIx } = await getOrCreateAta(connection, wallet.publicKey, usdcMint, wallet.publicKey);
@@ -120,7 +123,7 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const withdraw = useCallback(async (amount: number) => {
     if (!program || !wallet.publicKey || !usdcMint) throw new Error("Not ready");
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [vault] = findVaultPda(pool);
     const [lenderPosition] = findLenderPositionPda(pool, wallet.publicKey);
     const { ata, createIx } = await getOrCreateAta(connection, wallet.publicKey, usdcMint, wallet.publicKey);
@@ -136,7 +139,7 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const borrow = useCallback(async (collateralAmount: number, borrowAmount: number) => {
     if (!program || !wallet.publicKey || !usdcMint || !predictionMint) throw new Error("Not ready");
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [vault] = findVaultPda(pool);
     const [oracle] = findOraclePda(predictionMint);
     const [borrowPosition] = findBorrowPositionPda(pool, wallet.publicKey, predictionMint);
@@ -158,7 +161,7 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const repay = useCallback(async (amount: number) => {
     if (!program || !wallet.publicKey || !usdcMint || !predictionMint) throw new Error("Not ready");
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [vault] = findVaultPda(pool);
     const [borrowPosition] = findBorrowPositionPda(pool, wallet.publicKey, predictionMint);
     const [collateralVault] = findCollateralVaultPda(borrowPosition);
@@ -174,7 +177,7 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const fetchPool = useCallback(async () => {
     if (!program || !usdcMint) return null;
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     try { return await (program.account as any).lendingPool.fetch(pool); } catch { return null; }
   }, [program, usdcMint]);
 
@@ -186,14 +189,14 @@ export function useVero(usdcMint?: PublicKey, predictionMint?: PublicKey) {
 
   const fetchBorrowPosition = useCallback(async () => {
     if (!program || !wallet.publicKey || !usdcMint || !predictionMint) return null;
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [pos] = findBorrowPositionPda(pool, wallet.publicKey, predictionMint);
     try { return await (program.account as any).borrowPosition.fetch(pos); } catch { return null; }
   }, [program, wallet.publicKey, usdcMint, predictionMint]);
 
   const fetchLenderPosition = useCallback(async () => {
     if (!program || !wallet.publicKey || !usdcMint) return null;
-    const [pool] = findPoolPda(usdcMint);
+    const [pool] = findPoolPda(usdcMint, marketMint);
     const [pos] = findLenderPositionPda(pool, wallet.publicKey);
     try { return await (program.account as any).lenderPosition.fetch(pos); } catch { return null; }
   }, [program, wallet.publicKey, usdcMint]);

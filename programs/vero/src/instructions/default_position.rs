@@ -30,9 +30,11 @@ pub fn handler(ctx: Context<DefaultPosition>) -> Result<()> {
 
     // Burn the forfeited collateral
     let usdc_mint_key = ctx.accounts.pool.usdc_mint;
+    let market_mint_key = ctx.accounts.pool.market_mint;
     let pool_seeds = &[
         b"pool".as_ref(),
         usdc_mint_key.as_ref(),
+        market_mint_key.as_ref(),
         &[ctx.accounts.pool.bump],
     ];
     let signer_seeds = &[&pool_seeds[..]];
@@ -91,7 +93,7 @@ pub struct DefaultPosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"pool", pool.usdc_mint.as_ref()],
+        seeds = [b"pool", pool.usdc_mint.as_ref(), pool.market_mint.as_ref()],
         bump = pool.bump,
     )]
     pub pool: Account<'info, LendingPool>,
