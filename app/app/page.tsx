@@ -109,7 +109,9 @@ export default function Dashboard() {
                 className="w-full h-8 bg-card rounded-lg border border-transparent pl-8 pr-3 text-[13px] text-text-primary placeholder:text-text-disabled focus-visible:border-ring focus-visible:ring-0 outline-none transition-colors"
               />
             </div>
-            <span className="text-[11px] text-text-disabled shrink-0">{filtered.length} markets</span>
+          </div>
+          <div className="flex justify-end mb-1">
+            <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
           </div>
 
           {marketsLoading ? (
