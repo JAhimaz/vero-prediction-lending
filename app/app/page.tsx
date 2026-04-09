@@ -110,7 +110,7 @@ export default function Dashboard() {
               />
             </div>
           </div>
-          <div className="flex justify-end mb-1">
+          <div className="flex justify-end mb-3">
             <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
           </div>
 
