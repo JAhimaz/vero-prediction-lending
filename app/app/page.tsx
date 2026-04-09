@@ -109,18 +109,20 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center justify-between mb-3">
-            <div className={cn(
-              "flex items-center gap-1 text-[11px] text-text-disabled transition-all duration-300",
-              txVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-            )}>
-              {latestTx.type === "lend" ? (
-                <ArrowDownLeft className="size-3 text-success/60" />
-              ) : (
-                <ArrowUpRight className="size-3 text-brand/60" />
-              )}
-              <span className="font-mono">{shortenAddress(latestTx.address)}</span>
-              <span>${latestTx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
+            {latestTx ? (
+              <div className={cn(
+                "flex items-center gap-1 text-[11px] text-text-disabled transition-all duration-300",
+                txVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+              )}>
+                {latestTx.type === "lend" ? (
+                  <ArrowDownLeft className="size-3 text-success/60" />
+                ) : (
+                  <ArrowUpRight className="size-3 text-brand/60" />
+                )}
+                <span className="font-mono">{shortenAddress(latestTx.address)}</span>
+                <span>${latestTx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            ) : <div />}
             <span className="text-[11px] text-text-disabled">{filtered.length} markets</span>
           </div>
 
@@ -184,8 +186,11 @@ function randomTx(): LatestTx {
 }
 
 function useLatestTx() {
-  const [tx, setTx] = useState<LatestTx>(randomTx);
+  const [tx, setTx] = useState<LatestTx | null>(null);
   const [visible, setVisible] = useState(true);
+
+  // Generate first tx on client only to avoid hydration mismatch
+  useEffect(() => { if (!tx) setTx(randomTx()); }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
