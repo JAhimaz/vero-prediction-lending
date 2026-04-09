@@ -13,7 +13,7 @@ import {
 import idlJson from "../../vero.json";
 
 export const PROGRAM_ID = new PublicKey(idlJson.address);
-const TREASURY = new PublicKey("7M5GcaAkEbdzCurMBsZZAytvHABCPKW6L4URsfdTSHwT");
+const TREASURY = new PublicKey("2NQyirUKxb5MCvVQnae7W5rTk7LXj9BoMhQUHbjuWMzA");
 
 export function findPoolPda(usdcMint: PublicKey, marketMint?: PublicKey): [PublicKey, number] {
   const seeds = marketMint

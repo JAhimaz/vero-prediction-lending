@@ -72,7 +72,7 @@ async function main() {
   const provider = new AnchorProvider(connection, wallet as any, { commitment: "confirmed" });
   const program = new Program(idlJson as Idl, provider);
 
-  const TREASURY = new PublicKey("7M5GcaAkEbdzCurMBsZZAytvHABCPKW6L4URsfdTSHwT");
+  const TREASURY = new PublicKey("2NQyirUKxb5MCvVQnae7W5rTk7LXj9BoMhQUHbjuWMzA");
   const results: any[] = [];
   const userWallet = process.argv[2] ? new PublicKey(process.argv[2]) : null;
 
