@@ -15,8 +15,10 @@ export interface Market {
   metadaoQuestion: string;
   poolAddress: PublicKey;
   usdcMint: PublicKey;
-  predictionMint: PublicKey;
-  oracleAddress: PublicKey;
+  yesMint: PublicKey;
+  noMint: PublicKey;
+  yesOracle: PublicKey;
+  noOracle: PublicKey;
   probabilityBps: number;
   totalDeposits: number;
   totalBorrowed: number;
@@ -39,15 +41,15 @@ export function useMarkets() {
       const coder = new BorshCoder(idlJson as Idl);
 
       const poolKeys = marketsConfig.map((c) => new PublicKey(c.pool));
-      const oracleKeys = marketsConfig.map((c) => new PublicKey(c.oracle));
-      const allKeys = [...poolKeys, ...oracleKeys];
+      const yesOracleKeys = marketsConfig.map((c) => new PublicKey((c as any).yesOracle || (c as any).oracle));
+      const allKeys = [...poolKeys, ...yesOracleKeys];
 
       const allAccounts = await connection.getMultipleAccountsInfo(allKeys);
 
       const discovered: Market[] = [];
 
       for (let i = 0; i < marketsConfig.length; i++) {
-        const cfg = marketsConfig[i];
+        const cfg = marketsConfig[i] as any;
         const poolAccount = allAccounts[i];
         const oracleAccount = allAccounts[marketsConfig.length + i];
 
@@ -59,12 +61,14 @@ export function useMarkets() {
 
           discovered.push({
             name: cfg.name,
-            symbol: (cfg as any).symbol || "TOKEN",
-            metadaoQuestion: (cfg as any).metadaoQuestion || "",
+            symbol: cfg.symbol || "TOKEN",
+            metadaoQuestion: cfg.metadaoQuestion || "",
             poolAddress: poolKeys[i],
             usdcMint: new PublicKey(cfg.usdcMint),
-            predictionMint: new PublicKey(cfg.predictionMint),
-            oracleAddress: oracleKeys[i],
+            yesMint: new PublicKey(cfg.yesMint || cfg.predictionMint),
+            noMint: new PublicKey(cfg.noMint || cfg.yesMint || cfg.predictionMint),
+            yesOracle: yesOracleKeys[i],
+            noOracle: new PublicKey(cfg.noOracle || cfg.yesOracle || cfg.oracle),
             probabilityBps: (oracleData as any).probability_bps,
             totalDeposits: (poolData as any).total_deposits.toNumber() / 1e6,
             totalBorrowed: (poolData as any).total_borrowed.toNumber() / 1e6,

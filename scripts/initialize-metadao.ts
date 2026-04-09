@@ -85,9 +85,10 @@ async function main() {
     const market = METADAO_MARKETS[i];
     console.log(`=== ${i + 1}/${METADAO_MARKETS.length}: ${market.name} ===`);
 
-    // Each market gets its own USDC mint and prediction mint on devnet
+    // Each market gets its own USDC mint + YES mint + NO mint on devnet
     const usdcMint = await createMint(connection, admin, admin.publicKey, null, 6);
-    const predMint = await createMint(connection, admin, admin.publicKey, null, 6);
+    const yesMint = await createMint(connection, admin, admin.publicKey, null, 6);
+    const noMint = await createMint(connection, admin, admin.publicKey, null, 6);
     const [pool] = findPoolPda(usdcMint);
     const [vault] = findVaultPda(pool);
 
@@ -97,10 +98,18 @@ async function main() {
       tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
-    // Init oracle
-    const [oracle] = findOraclePda(predMint);
+    // Init YES oracle
+    const [yesOracle] = findOraclePda(yesMint);
     await program.methods.initializeOracle(market.probability, new BN(0)).accounts({
-      authority: admin.publicKey, marketMint: predMint, oracle,
+      authority: admin.publicKey, marketMint: yesMint, oracle: yesOracle,
+      systemProgram: SystemProgram.programId,
+    }).signers([admin]).rpc();
+
+    // Init NO oracle (probability = 10000 - YES probability)
+    const noProbability = 10000 - market.probability;
+    const [noOracle] = findOraclePda(noMint);
+    await program.methods.initializeOracle(noProbability, new BN(0)).accounts({
+      authority: admin.publicKey, marketMint: noMint, oracle: noOracle,
       systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
@@ -118,18 +127,22 @@ async function main() {
       tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
     }).signers([admin]).rpc();
 
-    // Mint prediction tokens
-    const adminPred = await createAccount(connection, admin, predMint, admin.publicKey);
-    await mintTo(connection, admin, predMint, adminPred, admin, 2000_000_000);
+    // Mint YES + NO tokens to admin
+    const adminYes = await createAccount(connection, admin, yesMint, admin.publicKey);
+    await mintTo(connection, admin, yesMint, adminYes, admin, 2000_000_000);
+    const adminNo = await createAccount(connection, admin, noMint, admin.publicKey);
+    await mintTo(connection, admin, noMint, adminNo, admin, 2000_000_000);
 
-    console.log(`  ${market.symbol} | ${market.probability / 100}% | $${seedAmount} liquidity`);
+    console.log(`  ${market.symbol} | Pass ${market.probability / 100}% / Fail ${noProbability / 100}% | $${seedAmount} liquidity`);
 
     // Mint to user wallet if provided
     if (userWallet) {
       const userUsdc = await getOrCreateAssociatedTokenAccount(connection, admin, usdcMint, userWallet);
       await mintTo(connection, admin, usdcMint, userUsdc.address, admin, 5000_000_000);
-      const userPred = await getOrCreateAssociatedTokenAccount(connection, admin, predMint, userWallet);
-      await mintTo(connection, admin, predMint, userPred.address, admin, 2000_000_000);
+      const userYes = await getOrCreateAssociatedTokenAccount(connection, admin, yesMint, userWallet);
+      await mintTo(connection, admin, yesMint, userYes.address, admin, 2000_000_000);
+      const userNo = await getOrCreateAssociatedTokenAccount(connection, admin, noMint, userWallet);
+      await mintTo(connection, admin, noMint, userNo.address, admin, 2000_000_000);
     }
 
     results.push({
@@ -138,9 +151,11 @@ async function main() {
       metadaoQuestion: market.question,
       probabilityBps: market.probability,
       usdcMint: usdcMint.toBase58(),
-      predictionMint: predMint.toBase58(),
+      yesMint: yesMint.toBase58(),
+      noMint: noMint.toBase58(),
       pool: pool.toBase58(),
-      oracle: oracle.toBase58(),
+      yesOracle: yesOracle.toBase58(),
+      noOracle: noOracle.toBase58(),
       seedLiquidity: seedAmount,
     });
   }

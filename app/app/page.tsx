@@ -134,7 +134,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-3 gap-2 max-h-[calc(100vh-220px)] overflow-y-auto overflow-x-visible p-2 -m-2">
               {filtered.map((m) => (
                 <MarketCard
-                  key={m.poolAddress.toBase58() + m.predictionMint.toBase58()}
+                  key={m.poolAddress.toBase58() + m.yesMint.toBase58()}
                   market={m}
                   onLend={() => { setActiveMarket(m); setModalMode("lend"); }}
                   onBorrow={() => { setActiveMarket(m); setModalMode("borrow"); }}
@@ -231,18 +231,24 @@ function useUserTotals(markets: Market[]) {
       const [pos] = findLenderPositionPda(pool, publicKey);
       return pos;
     });
-    const borrowKeys = markets.map((m) => {
+    const borrowYesKeys = markets.map((m) => {
       const [pool] = findPoolPda(m.usdcMint);
-      const [pos] = findBorrowPositionPda(pool, publicKey, m.predictionMint);
+      const [pos] = findBorrowPositionPda(pool, publicKey, m.yesMint);
+      return pos;
+    });
+    const borrowNoKeys = markets.map((m) => {
+      const [pool] = findPoolPda(m.usdcMint);
+      const [pos] = findBorrowPositionPda(pool, publicKey, m.noMint);
       return pos;
     });
 
-    connection.getMultipleAccountsInfo([...lenderKeys, ...borrowKeys]).then((accounts) => {
+    connection.getMultipleAccountsInfo([...lenderKeys, ...borrowYesKeys, ...borrowNoKeys]).then((accounts) => {
       let lent = 0;
       let borrowed = 0;
       for (let i = 0; i < markets.length; i++) {
         const lenderAcc = accounts[i];
-        const borrowAcc = accounts[markets.length + i];
+        const borrowYesAcc = accounts[markets.length + i];
+        const borrowNoAcc = accounts[markets.length * 2 + i];
         if (lenderAcc) {
           try {
             const data = coder.accounts.decode("LenderPosition", lenderAcc.data);
@@ -252,12 +258,14 @@ function useUserTotals(markets: Market[]) {
             if (shares > 0) lent += shares / 1e6;
           } catch {}
         }
-        if (borrowAcc) {
-          try {
-            const data = coder.accounts.decode("BorrowPosition", borrowAcc.data);
-            const amount = (data as any).borrowed_amount?.toNumber?.() ?? 0;
-            if (amount > 0) borrowed += amount / 1e6;
-          } catch {}
+        for (const borrowAcc of [borrowYesAcc, borrowNoAcc]) {
+          if (borrowAcc) {
+            try {
+              const data = coder.accounts.decode("BorrowPosition", borrowAcc.data);
+              const amount = (data as any).borrowed_amount?.toNumber?.() ?? 0;
+              if (amount > 0) borrowed += amount / 1e6;
+            } catch {}
+          }
         }
       }
       setUserLent(lent);
@@ -382,7 +390,7 @@ function PositionsSidebar({ markets }: { markets: Market[] }) {
     <div className="max-h-[calc(100vh-220px)] overflow-y-auto space-y-2 pr-1">
       {markets.map((m) => (
         <PositionCard
-          key={m.poolAddress.toBase58() + m.predictionMint.toBase58()}
+          key={m.poolAddress.toBase58() + m.yesMint.toBase58()}
           market={m}
         />
       ))}
@@ -391,21 +399,22 @@ function PositionsSidebar({ markets }: { markets: Market[] }) {
 }
 
 function PositionCard({ market: m }: { market: Market }) {
-  const { fetchLenderPosition, fetchBorrowPosition, connected } = useVero(m.usdcMint, m.predictionMint);
+  const { fetchLenderPosition, fetchBorrowPosition: fetchYesBorrow, connected } = useVero(m.usdcMint, m.yesMint);
+  const { fetchBorrowPosition: fetchNoBorrow } = useVero(m.usdcMint, m.noMint);
   const [lenderPos, setLenderPos] = useState<any>(null);
   const [borrowPos, setBorrowPos] = useState<any>(null);
 
   // Random but stable health factor per market
   const health = useMemo(() => {
-    const seed = m.poolAddress.toBase58().charCodeAt(0) + m.predictionMint.toBase58().charCodeAt(0);
+    const seed = m.poolAddress.toBase58().charCodeAt(0) + m.yesMint.toBase58().charCodeAt(0);
     return 0.4 + ((seed * 7) % 60) / 100 * 1.6;
   }, [m]);
 
   useEffect(() => {
     if (!connected) return;
     fetchLenderPosition().then(setLenderPos);
-    fetchBorrowPosition().then(setBorrowPos);
-  }, [connected, fetchLenderPosition, fetchBorrowPosition]);
+    fetchYesBorrow().then(setBorrowPos);
+  }, [connected, fetchLenderPosition, fetchYesBorrow]);
 
   const hasLend = lenderPos && (lenderPos.shares ?? lenderPos.deposited_amount ?? lenderPos.depositedAmount)?.toNumber() > 0;
   const hasBorrow = borrowPos && (borrowPos.borrowed_amount ?? borrowPos.borrowedAmount).toNumber() > 0;
@@ -464,11 +473,14 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
   onSuccess: () => void;
 }) {
   const isOpen = !!market && !!mode;
+  const [collateralSide, setCollateralSide] = useState<"yes" | "no">("yes");
+  const activeMint = market ? (collateralSide === "yes" ? market.yesMint : market.noMint) : undefined;
+
   const {
     connected, deposit, withdraw, borrow, repay,
     fetchPool, fetchOracle, fetchBorrowPosition, fetchLenderPosition,
     usdcBalance, predictionBalance,
-  } = useVero(market?.usdcMint, market?.predictionMint);
+  } = useVero(market?.usdcMint, activeMint);
 
   const [tab, setTab] = useState<"deposit" | "withdraw" | "borrow" | "repay">("deposit");
   const [amount, setAmount] = useState("");
@@ -484,13 +496,20 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
     if (!market) return;
     setAmount(""); setCollateralAmount(""); setStatus("");
     setTab(mode === "lend" ? "deposit" : "borrow");
+    setCollateralSide("yes");
     fetchPool().then(setPool);
     fetchOracle().then(setOracle);
     fetchBorrowPosition().then(setPosition);
     fetchLenderPosition().then(setLenderPos);
   }, [market, mode, fetchPool, fetchOracle, fetchBorrowPosition, fetchLenderPosition]);
 
-  const probability = oracle ? oracle.probabilityBps / 100 : market ? market.probabilityBps / 100 : 0;
+  useEffect(() => {
+    if (!market) return;
+    fetchOracle().then(setOracle);
+    fetchBorrowPosition().then(setPosition);
+  }, [collateralSide, fetchOracle, fetchBorrowPosition]);
+
+  const probability = oracle ? (oracle.probability_bps ?? oracle.probabilityBps) / 100 : market ? market.probabilityBps / 100 : 0;
   const maxLtv = pool ? pool.maxLtvBps / 100 : 50;
   const maxBorrow = collateralAmount && probability
     ? (parseFloat(collateralAmount) * (probability / 100) * (maxLtv / 100)).toFixed(2) : "0.00";
@@ -545,10 +564,37 @@ function ActionModal({ market, mode, onClose, onSuccess }: {
           )}
         </div>
 
+        {!isLendMode && (
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setCollateralSide("yes")}
+              className={cn(
+                "flex-1 h-7 rounded-lg text-[11px] font-semibold transition-all",
+                collateralSide === "yes"
+                  ? "bg-success text-white"
+                  : "bg-surface-muted text-text-tertiary"
+              )}
+            >
+              YES Token
+            </button>
+            <button
+              onClick={() => setCollateralSide("no")}
+              className={cn(
+                "flex-1 h-7 rounded-lg text-[11px] font-semibold transition-all",
+                collateralSide === "no"
+                  ? "bg-destructive text-white"
+                  : "bg-surface-muted text-text-tertiary"
+              )}
+            >
+              NO Token
+            </button>
+          </div>
+        )}
+
         {connected && (
           <div className="flex justify-between text-[11px] px-0.5">
             <span className="text-text-disabled">
-              {isLendMode || tab === "repay" ? "USDC" : "Tokens"}
+              {isLendMode || tab === "repay" ? "USDC" : `${collateralSide.toUpperCase()} Tokens`}
             </span>
             <span className="text-text-secondary font-medium">
               {isLendMode || tab === "repay" ? usdcBalance.toLocaleString() : predictionBalance.toLocaleString()}

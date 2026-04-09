@@ -62,27 +62,36 @@ export async function POST(req: Request) {
     const market = markets[marketIndex];
 
     const usdcMint = new PublicKey(market.usdcMint);
-    const predMint = new PublicKey(market.predictionMint);
+    const yesMint = new PublicKey(market.yesMint || market.predictionMint);
+    const noMint = market.noMint ? new PublicKey(market.noMint) : null;
 
-    // Mint 200 USDC (200 * 1e6)
+    // Mint 200 USDC
     const userUsdc = await getOrCreateAssociatedTokenAccount(
       connection, admin, usdcMint, userPubkey
     );
     await mintTo(connection, admin, usdcMint, userUsdc.address, admin, 200_000_000);
 
-    // Mint 100 prediction tokens (100 * 1e6)
-    const userPred = await getOrCreateAssociatedTokenAccount(
-      connection, admin, predMint, userPubkey
+    // Mint 100 YES tokens
+    const userYes = await getOrCreateAssociatedTokenAccount(
+      connection, admin, yesMint, userPubkey
     );
-    await mintTo(connection, admin, predMint, userPred.address, admin, 100_000_000);
+    await mintTo(connection, admin, yesMint, userYes.address, admin, 100_000_000);
 
-    // Update rate limit
+    // Mint 100 NO tokens
+    if (noMint) {
+      const userNo = await getOrCreateAssociatedTokenAccount(
+        connection, admin, noMint, userPubkey
+      );
+      await mintTo(connection, admin, noMint, userNo.address, admin, 100_000_000);
+    }
+
     lastClaim.set(key, now);
 
     return NextResponse.json({
       success: true,
       usdc: 200,
-      predictionTokens: 100,
+      yesTokens: 100,
+      noTokens: noMint ? 100 : 0,
       market: market.name,
     });
   } catch (e: any) {

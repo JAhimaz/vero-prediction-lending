@@ -42,7 +42,7 @@ export default function FaucetModal({
       if (data.error) {
         setStatus(`Error: ${data.error}`);
       } else {
-        setStatus(`Received 200 USDC + 100 tokens for "${data.market}"`);
+        setStatus(`Received 200 USDC + 100 YES + 100 NO tokens for "${data.market}"`);
       }
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
@@ -93,7 +93,11 @@ export default function FaucetModal({
                 <span className="text-text-primary font-medium">200.00</span>
               </div>
               <div className="flex justify-between text-[11px]">
-                <span className="text-text-tertiary">Prediction Tokens</span>
+                <span className="text-text-tertiary">YES Tokens</span>
+                <span className="text-text-primary font-medium">100.00</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-text-tertiary">NO Tokens</span>
                 <span className="text-text-primary font-medium">100.00</span>
               </div>
             </div>

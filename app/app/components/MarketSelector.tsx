@@ -34,10 +34,10 @@ export default function MarketSelector({
       <p className="text-sm text-zinc-400">Select a market</p>
       <div className="grid grid-cols-1 gap-2">
         {markets.map((m) => {
-          const isSelected = selected?.poolAddress.equals(m.poolAddress) && selected?.predictionMint.equals(m.predictionMint);
+          const isSelected = selected?.poolAddress.equals(m.poolAddress) && selected?.yesMint.equals(m.yesMint);
           return (
             <button
-              key={m.poolAddress.toBase58() + m.predictionMint.toBase58()}
+              key={m.poolAddress.toBase58() + m.yesMint.toBase58()}
               onClick={() => onSelect(m)}
               className={`w-full rounded-xl border p-4 text-left transition ${
                 isSelected
