@@ -89,7 +89,7 @@ export default function Dashboard() {
               <p className="text-[13px] text-text-tertiary">Discovering markets...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+            <div className="grid grid-cols-3 gap-2 max-h-[calc(100vh-220px)] overflow-y-auto overflow-x-visible p-2 -m-2">
               {filtered.map((m) => (
                 <MarketCard
                   key={m.poolAddress.toBase58() + m.predictionMint.toBase58()}
